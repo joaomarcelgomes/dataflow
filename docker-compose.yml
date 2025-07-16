@@ -40,6 +40,17 @@ services:
       dockerfile: Dockerfile.ingest_csv
     volumes:
       - ./data/csv:/data/csv
+    depends_on:
+      - minio
+
+  ingestion_database:
+    container_name: ingestion_database
+    build:
+      context: ./ingestion/database
+      dockerfile: Dockerfile.ingest_database
+    depends_on:
+      - minio
+      - db
 
 volumes:
   pgdata:

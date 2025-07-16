@@ -22,7 +22,7 @@ def connection_bucket():
 
     return s3
 
-def create_bucket_if_not_exists(retries=3):
+def create_bucket_if_not_exists():
     s3_res = boto3.resource(
         's3',
         endpoint_url=bucket_url,
@@ -49,10 +49,10 @@ def insert_file(s3, file):
     )
 
 def main():
-    file_csv = pd.read_csv('/data/csv/file.csv')
+    df = pd.read_csv('/data/csv/file.csv')
 
     buffer = BytesIO()
-    file_csv.to_parquet(buffer, index=False)
+    df.to_parquet(buffer, index=False)
     buffer.seek(0)
 
     s3 = connection_bucket()

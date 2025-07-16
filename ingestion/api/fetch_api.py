@@ -27,7 +27,7 @@ def connection_bucket():
 
     return s3
 
-def create_bucket_if_not_exists(retries=3):
+def create_bucket_if_not_exists():
     s3_res = boto3.resource(
         's3',
         endpoint_url=bucket_url,
