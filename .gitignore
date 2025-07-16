@@ -1,0 +1,5 @@
+.continue/
+.vscode/
+
+.tool-versions
+database-ingestion.session.sql
