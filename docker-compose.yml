@@ -33,6 +33,14 @@ services:
     depends_on:
       - minio
 
+  ingestion_csv:
+    container_name: ingestion_csv
+    build:
+      context: ./ingestion/csv
+      dockerfile: Dockerfile.ingest_csv
+    volumes:
+      - ./data/csv:/data/csv
+
 volumes:
   pgdata:
   miniodata:
