@@ -25,32 +25,72 @@ services:
     volumes:
       - miniodata:/data
 
-  ingestion_api:
-    container_name: ingestion_api
-    build:
-      context: ./ingestion/api
-      dockerfile: Dockerfile.api
-    depends_on:
-      - minio
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: kafka
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      ALLOW_PLAINTEXT_LISTENER: yes
+    ports:
+      - "9092:9092"
 
-  ingestion_csv:
-    container_name: ingestion_csv
+  api_producer:
+    container_name: api_producer
     build:
-      context: ./ingestion/csv
-      dockerfile: Dockerfile.ingest_csv
-    volumes:
-      - ./data/csv:/data/csv
+      context: ./ingestion/producers/api
+      dockerfile: Dockerfile.api_producer
     depends_on:
-      - minio
+      - kafka
 
-  ingestion_database:
-    container_name: ingestion_database
+  api_consumer:
+    container_name: api_consumer
     build:
-      context: ./ingestion/database
-      dockerfile: Dockerfile.ingest_database
+      context: ./ingestion/consumers/api
+      dockerfile: Dockerfile.api_consumer
     depends_on:
       - minio
+      - kafka
+
+  csv_producer:
+    container_name: csv_producer
+    build:
+      context: ./ingestion/producers/csv
+      dockerfile: Dockerfile.csv_producer
+    depends_on:
+      - kafka
+
+  csv_consumer:
+    container_name: csv_consumer
+    build:
+      context: ./ingestion/consumers/csv
+      dockerfile: Dockerfile.csv_consumer
+    depends_on:
+      - minio
+      - kafka
+
+  database_producer:
+    container_name: database_producer
+    build:
+      context: ./ingestion/producers/database
+      dockerfile: Dockerfile.database_producer
+    depends_on:
+      - kafka
       - db
+
+  database_consumer:
+    container_name: database_consumer
+    build:
+      context: ./ingestion/consumers/database
+      dockerfile: Dockerfile.database_consumer
+    depends_on:
+      - minio
+      - kafka
 
 volumes:
   pgdata:
