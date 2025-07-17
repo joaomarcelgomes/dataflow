@@ -1,21 +1,26 @@
-import requests
 import boto3
 import json
 from datetime import datetime
 from botocore.client import Config
+from confluent_kafka import Consumer
 
 key_id = 'minio'
 secret_key = 'minio123'
-bucket_name = 'lake-api'
+bucket_name = 'lake-database'
 bucket_url = 'http://minio:9000'
 
-def fetch_weather():
-    params = {"city_name": "São Paulo"}
-    response = requests.get('https://api.hgbrasil.com/weather', params=params)
-    response.raise_for_status()
-    return response.json()
+def get_consumer():
+    consumer = Consumer({
+        'bootstrap.servers': 'kafka:9092',
+        'group.id': 'database_group',
+        'auto.offset.reset': 'earliest'
+    })
 
-def connection_bucket():
+    consumer.subscribe(['ingestion_database'])
+
+    return consumer
+
+def get_s3_client():
     s3 = boto3.client(
         's3',
         endpoint_url=bucket_url,
@@ -44,18 +49,27 @@ def insert_file(s3, file):
     create_bucket_if_not_exists()
 
     timestamp = datetime.now().isoformat(timespec='seconds')
-    filename = f"raw/api/{timestamp}.json"
+    filename = f"raw/database/{timestamp}.json"
 
     s3.put_object(
         Bucket=bucket_name,
         Key=filename,
-        Body=json.dumps(file),
+        Body=file,
         ContentType='application/json'
     )
 
 def main():
-    weather_data = fetch_weather()
-    s3 = connection_bucket()
-    insert_file(s3, weather_data)
+    consumer = get_consumer()
+    s3 = get_s3_client()
+
+    while True:
+        message = consumer.poll(1.0)
+
+        if message is None:
+            continue
+
+        data = message.value().decode('utf-8')
+        insert_file(s3, data)
+        consumer.commit()
 
 main()

@@ -1,21 +1,26 @@
 import boto3
-import pandas as pd
+import json
 from datetime import datetime
 from botocore.client import Config
-from io import StringIO
-import psycopg2
-from sqlalchemy import create_engine
+from confluent_kafka import Consumer
 
 key_id = 'minio'
 secret_key = 'minio123'
-bucket_name = 'lake-database'
+bucket_name = 'lake-csv'
 bucket_url = 'http://minio:9000'
 
-def connection_database():
-    engine = create_engine('postgresql+psycopg2://postgres:postgres@db:5432/dataflow')
-    return engine
+def get_consumer():
+    consumer = Consumer({
+        'bootstrap.servers': 'kafka:9092',
+        'group.id': 'csv_group',
+        'auto.offset.reset': 'earliest'
+    })
 
-def connection_bucket():
+    consumer.subscribe(['ingestion_csv'])
+
+    return consumer
+
+def get_s3_client():
     s3 = boto3.client(
         's3',
         endpoint_url=bucket_url,
@@ -44,26 +49,27 @@ def insert_file(s3, file):
     create_bucket_if_not_exists()
 
     timestamp = datetime.now().isoformat(timespec='seconds')
-    filename = f"raw/database/{timestamp}.csv"
+    filename = f"raw/csv/{timestamp}.json"
 
     s3.put_object(
         Bucket=bucket_name,
         Key=filename,
-        Body=file.getvalue(),
-        ContentType='text/csv'
+        Body=file,
+        ContentType='application/json'
     )
 
 def main():
-    engine = connection_database()
+    consumer = get_consumer()
+    s3 = get_s3_client()
 
-    df = pd.read_sql_query('SELECT * FROM weather_forecast', engine)
-    engine.dispose()
+    while True:
+        message = consumer.poll(1.0)
 
-    buffer = StringIO()
-    df.to_csv(buffer, index=False)
-    buffer.seek(0)
+        if message is None:
+            continue
 
-    s3 = connection_bucket()
-    insert_file(s3, buffer)
+        data = message.value().decode('utf-8')
+        insert_file(s3, data)
+        consumer.commit()
 
 main()
