@@ -62,14 +62,13 @@ def main():
     consumer = get_consumer()
     s3 = get_s3_client()
 
-    while True:
-        message = consumer.poll(1.0)
+    message = consumer.poll(1.0)
 
-        if message is None:
-            continue
+    if message is None:
+        return
 
-        data = message.value().decode('utf-8')
-        insert_file(s3, data)
-        consumer.commit()
+    data = message.value().decode('utf-8')
+    insert_file(s3, data)
+    consumer.commit()
 
 main()

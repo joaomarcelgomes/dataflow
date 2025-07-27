@@ -2,6 +2,8 @@ services:
   db:
     container_name: database-ingestion
     image: postgres
+    networks:
+      - airflow_net
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -15,6 +17,8 @@ services:
   minio:
     container_name: datalake
     image: minio/minio
+    networks:
+      - airflow_net
     environment:
       MINIO_ACCESS_KEY: minio
       MINIO_SECRET_KEY: minio123
@@ -25,9 +29,32 @@ services:
     volumes:
       - miniodata:/data
 
+  airflow:
+    container_name: airflow
+    image: apache/airflow:2.9.1
+    user: "0:0"
+    networks:
+      - airflow_net
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8080:8080"
+    command: >
+      bash -c "
+        airflow db migrate &&
+        airflow users create --username admin --firstname admin --lastname admin --role Admin --email admin@example.com --password admin &&
+        airflow webserver
+      "
+
   kafka:
     image: bitnami/kafka:latest
     container_name: kafka
+    networks:
+      - airflow_net
     environment:
       KAFKA_CFG_NODE_ID: 1
       KAFKA_CFG_PROCESS_ROLES: broker,controller
@@ -47,6 +74,8 @@ services:
       dockerfile: Dockerfile.api_producer
     depends_on:
       - kafka
+    networks:
+      - airflow_net
 
   api_consumer:
     container_name: api_consumer
@@ -56,6 +85,8 @@ services:
     depends_on:
       - minio
       - kafka
+    networks:
+      - airflow_net
 
   csv_producer:
     container_name: csv_producer
@@ -64,6 +95,8 @@ services:
       dockerfile: Dockerfile.csv_producer
     depends_on:
       - kafka
+    networks:
+      - airflow_net
 
   csv_consumer:
     container_name: csv_consumer
@@ -73,6 +106,8 @@ services:
     depends_on:
       - minio
       - kafka
+    networks:
+      - airflow_net
 
   database_producer:
     container_name: database_producer
@@ -82,6 +117,8 @@ services:
     depends_on:
       - kafka
       - db
+    networks:
+      - airflow_net
 
   database_consumer:
     container_name: database_consumer
@@ -91,7 +128,13 @@ services:
     depends_on:
       - minio
       - kafka
+    networks:
+      - airflow_net
+
+networks:
+  airflow_net:
 
 volumes:
   pgdata:
   miniodata:
+  dags:
