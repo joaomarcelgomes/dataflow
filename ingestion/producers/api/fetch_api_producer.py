@@ -1,3 +1,4 @@
+#pegar dados da api e enviar para o kafka
 import requests
 from confluent_kafka import Producer
 import json

@@ -1,3 +1,4 @@
+#consulta pg para enviar os results ao kafka
 import pandas as pd
 from io import StringIO
 import psycopg2

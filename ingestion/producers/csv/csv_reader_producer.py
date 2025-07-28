@@ -1,3 +1,4 @@
+#ler o arquivo file.csv
 import pandas as pd
 from confluent_kafka import Producer
 import json
