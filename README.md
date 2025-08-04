@@ -13,4 +13,9 @@ Project developed using:
 To start all required containers (e.g., database, MinIO, services), run:
 
 ```bash
-docker-compose up -d
+docker compose up -d
+```
+
+```airflow
+docker exec airflow airflow scheduler
+```
