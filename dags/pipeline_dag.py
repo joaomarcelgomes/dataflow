@@ -67,4 +67,4 @@ with DAG(
 
     run_api_producer >> run_api_consumer
     run_db_producer >> run_db_consumer
-    run_csv_producer >> run_csv_consumer
+    # run_csv_producer >> run_csv_consumer
