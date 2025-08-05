@@ -1,22 +1,35 @@
+import logging
 import pandas as pd
 from io import StringIO
-import psycopg2
 from sqlalchemy import create_engine
 from confluent_kafka import Producer
 
+KAFKA_BROKER = 'kafka:9092'
+TARGET_TOPIC = 'ingestion_database'
+DB_URL = 'postgresql+psycopg2://postgres:postgres@db:5432/dataflow'
+TABLE = 'weather_forecast'
+
+logging.basicConfig(
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+    level=logging.INFO
+)
+
 def connection_database():
-    engine = create_engine('postgresql+psycopg2://postgres:postgres@db:5432/dataflow')
-    return engine
+    return create_engine(DB_URL)
 
-def publish_to_kafka(producer, data):
-    producer.produce('ingestion_database', value=data.encode('utf-8'))
-    producer.flush()
+def publish_to_kafka(producer: Producer, payload: str) -> None:
+    producer.produce(TARGET_TOPIC, value=payload.encode('utf-8'))
+    producer.flush(timeout=5)
+    logging.info("Published data to Kafka")
 
-def main():
-    producer = Producer({'bootstrap.servers': 'kafka:9092'})
+def main() -> None:
+    logging.info("Starting Database Producer")
 
+    producer = Producer({'bootstrap.servers': KAFKA_BROKER})
     engine = connection_database()
-    df = pd.read_sql_query('SELECT * FROM weather_forecast', engine)
+
+    logging.info(f"Querying table: {TABLE}")
+    df = pd.read_sql_query(f'SELECT * FROM {TABLE}', engine)
     engine.dispose()
 
     buffer = StringIO()
@@ -25,4 +38,5 @@ def main():
 
     publish_to_kafka(producer, buffer.getvalue())
 
-main()
+if __name__ == '__main__':
+    main()

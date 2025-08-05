@@ -1,16 +1,34 @@
+import os
+import json
+import logging
 import pandas as pd
 from confluent_kafka import Producer
-import json
 
-def publish_to_kafka(producer, data):
-    producer.produce('ingestion_csv', value=json.dumps(data).encode('utf-8'))
-    producer.flush()
+KAFKA_BROKER = 'kafka:9092'
+TARGET_TOPIC = 'ingestion_csv'
+CSV_DIR = '/data/csv'
 
-def main():
-    producer = Producer({'bootstrap.servers': 'kafka:9092'})
+logging.basicConfig(
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+    level=logging.INFO
+)
 
-    data = pd.read_csv('/data/csv/file.csv').to_json(orient='records')
+def publish_to_kafka(producer: Producer, data: dict) -> None:
+    producer.produce(TARGET_TOPIC, value=json.dumps(data).encode('utf-8'))
+    producer.flush(timeout=5)
+    logging.info("Published row to Kafka")
 
-    publish_to_kafka(producer, data)
+def main() -> None:
+    logging.info("Starting CSV Producer")
+    producer = Producer({'bootstrap.servers': KAFKA_BROKER})
 
-main()
+    for filename in os.listdir(CSV_DIR):
+        if filename.endswith(".csv"):
+            path = os.path.join(CSV_DIR, filename)
+            logging.info(f"Processing file: {filename}")
+            df = pd.read_csv(path)
+            for _, row in df.iterrows():
+                publish_to_kafka(producer, row.to_dict())
+
+if __name__ == '__main__':
+    main()

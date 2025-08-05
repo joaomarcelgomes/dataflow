@@ -127,8 +127,6 @@ services:
     build:
       context: ./ingestion/producers/csv
       dockerfile: Dockerfile.csv_producer
-    volumes:
-      - ./data/csv:/data/csv
     depends_on:
       - kafka
     networks:

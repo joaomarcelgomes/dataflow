@@ -1,2 +1,3 @@
 pandas
 confluent-kafka
+logging
