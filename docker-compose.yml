@@ -41,6 +41,11 @@ services:
       ALLOW_PLAINTEXT_LISTENER: "yes"
     ports:
       - "9092:9092"
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   api_producer:
     container_name: api_producer
@@ -48,7 +53,8 @@ services:
       context: ./ingestion/producers/api
       dockerfile: Dockerfile.api_producer
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     restart: on-failure
 
   api_consumer:
@@ -57,8 +63,10 @@ services:
       context: ./ingestion/consumers/api
       dockerfile: Dockerfile.api_consumer
     depends_on:
-      - minio
-      - kafka
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_healthy
     restart: on-failure
 
   csv_producer:
@@ -67,7 +75,8 @@ services:
       context: ./ingestion/producers/csv
       dockerfile: Dockerfile.csv_producer
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     restart: on-failure
 
   csv_consumer:
@@ -76,8 +85,10 @@ services:
       context: ./ingestion/consumers/csv
       dockerfile: Dockerfile.csv_consumer
     depends_on:
-      - minio
-      - kafka
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_healthy
     restart: on-failure
 
   database_producer:
@@ -86,8 +97,10 @@ services:
       context: ./ingestion/producers/database
       dockerfile: Dockerfile.database_producer
     depends_on:
-      - kafka
-      - db
+      db:
+        condition: service_started
+      kafka:
+        condition: service_healthy
     volumes:
       - ./ingestion/producers/database:/app
     restart: on-failure
@@ -98,58 +111,62 @@ services:
       context: ./ingestion/consumers/database
       dockerfile: Dockerfile.database_consumer
     depends_on:
-      - minio
-      - kafka
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_healthy
     volumes:
       - ./ingestion/consumers/database:/app
     restart: on-failure
 
   transform_csv:
+    container_name: transform_csv
     build:
       context: ./transformers/csv
       dockerfile: Dockerfile.transform_csv
     depends_on:
-      - kafka
-      - db
-      - minio
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_healthy
     volumes:
       - ./transformers/csv:/app
-    networks:
-      - kafka_net
     restart: on-failure
 
   transform_database:
+    container_name: transform_database
     build:
       context: ./transformers/database
       dockerfile: Dockerfile.transform_database
     depends_on:
-      - kafka
-      - db
-      - minio
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_healthy
     volumes:
       - ./transformers/database:/app
-    networks:
-      - kafka_net
     restart: on-failure
 
   transform_parquet:
+    container_name: transform_parquet
     build:
       context: ./transformers/parquet
       dockerfile: Dockerfile.transform_parquet
     depends_on:
-      - kafka
-      - db
-      - minio
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_healthy
     volumes:
       - ./transformers/parquet:/app
-    networks:
-      - kafka_net
     restart: on-failure
 
 volumes:
   pgdata:
   miniodata:
-
-networks:
-  kafka_net:
-    driver: bridge
