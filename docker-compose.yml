@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   db:
     container_name: database-ingestion
@@ -94,9 +96,14 @@ services:
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      ALLOW_PLAINTEXT_LISTENER: yes
+      ALLOW_PLAINTEXT_LISTENER: "yes"
     ports:
       - "9092:9092"
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   api_producer:
     container_name: api_producer
@@ -105,9 +112,11 @@ services:
       context: ./ingestion/producers/api
       dockerfile: Dockerfile.api_producer
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
       - airflow_net
+    restart: on-failure
 
   api_consumer:
     container_name: api_consumer
@@ -116,10 +125,13 @@ services:
       context: ./ingestion/consumers/api
       dockerfile: Dockerfile.api_consumer
     depends_on:
-      - minio
-      - kafka
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_started
     networks:
       - airflow_net
+    restart: on-failure
 
   csv_producer:
     container_name: csv_producer
@@ -128,9 +140,11 @@ services:
       context: ./ingestion/producers/csv
       dockerfile: Dockerfile.csv_producer
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
       - airflow_net
+    restart: on-failure
 
   csv_consumer:
     container_name: csv_consumer
@@ -139,10 +153,13 @@ services:
       context: ./ingestion/consumers/csv
       dockerfile: Dockerfile.csv_consumer
     depends_on:
-      - minio
-      - kafka
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_started
     networks:
       - airflow_net
+    restart: on-failure
 
   database_producer:
     container_name: database_producer
@@ -151,10 +168,15 @@ services:
       context: ./ingestion/producers/database
       dockerfile: Dockerfile.database_producer
     depends_on:
-      - kafka
-      - db
+      db:
+        condition: service_started
+      kafka:
+        condition: service_healthy
     networks:
       - airflow_net
+    volumes:
+      - ./ingestion/producers/database:/app
+    restart: on-failure
 
   database_consumer:
     container_name: database_consumer
@@ -165,6 +187,61 @@ services:
     depends_on:
       - minio
       - kafka
+    networks:
+      - airflow_net
+
+  csv_transform:
+    container_name: csv_transform
+    image: dataflow_csv_transform
+    build:
+      context: ./transformers/csv
+      dockerfile: Dockerfile.transform_csv
+    depends_on:
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./transformers/csv:/app
+    restart: on-failure
+    networks:
+      - airflow_net
+
+  database_transform:
+    container_name: database_transform
+    image: dataflow_database_transform
+    build:
+      context: ./transformers/database
+      dockerfile: Dockerfile.database_transform
+    depends_on:
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./transformers/database:/app
+    restart: on-failure
+
+  api_transform:
+    container_name: api_transform
+    image: dataflow_api_transform
+    build:
+      context: ./transformers/api
+      dockerfile: Dockerfile.transform_api
+    depends_on:
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./transformers/parquet:/app
+    restart: on-failure
     networks:
       - airflow_net
 

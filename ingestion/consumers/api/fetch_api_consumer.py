@@ -28,7 +28,7 @@ def get_consumer() -> Consumer:
         'bootstrap.servers': KAFKA_BROKER,
         'group.id': GROUP_ID,
         'auto.offset.reset': 'earliest',
-        'enable.auto.commit': False  # desabilita commit automático
+        'enable.auto.commit': False
     })
     consumer.subscribe([SOURCE_TOPIC])
     return consumer

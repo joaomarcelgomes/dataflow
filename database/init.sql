@@ -13,6 +13,23 @@ CREATE TABLE IF NOT EXISTS weather_forecast (
     condition VARCHAR(50) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS weather_forecast_raw (
+    id SERIAL PRIMARY KEY,
+    full_date DATE NOT NULL,
+    weekday VARCHAR(10) NOT NULL,
+    temp_range VARCHAR(20) NOT NULL,
+    humidity INTEGER NOT NULL,
+    cloudiness REAL NOT NULL,
+    rain REAL NOT NULL,
+    rain_probability INTEGER NOT NULL,
+    wind_speedy VARCHAR(20) NOT NULL,
+    description VARCHAR(100) NOT NULL,
+    condition VARCHAR(50) NOT NULL,
+    inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
 INSERT INTO weather_forecast (
     date, weekday, max_temp, min_temp, humidity, cloudiness,
     rain, rain_probability, wind_speedy, description, condition

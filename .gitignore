@@ -3,3 +3,5 @@
 
 .tool-versions
 database-ingestion.session.sql
+
+__pycache__

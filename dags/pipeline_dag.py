@@ -34,13 +34,16 @@ with DAG(
 ) as dag:
     api_producer = create_operator('run_api_producer', 'api_producer', 'fetch_api_producer')
     api_consumer = create_operator('run_api_consumer', 'api_consumer', 'fetch_api_consumer')
+    api_transform = create_operator('run_api_transform', 'api_transform', 'api_transform')
 
     db_producer = create_operator('run_db_producer', 'database_producer', 'extract_database_producer')
     db_consumer = create_operator('run_db_consumer', 'database_consumer', 'database_consumer')
+    db_transform = create_operator('run_db_transform', 'database_transform', 'database_transform')
 
     csv_producer = create_operator('run_csv_producer', 'csv_producer', 'csv_reader_producer')
     csv_consumer = create_operator('run_csv_consumer', 'csv_consumer', 'csv_reader_consumer')
+    csv_transform = create_operator('run_csv_transform', 'csv_transform', 'csv_transform')
 
-    db_producer >> db_consumer
-    csv_producer >> csv_consumer
-    api_producer >> api_consumer
+    db_producer >> db_consumer >> db_transform
+    csv_producer >> csv_consumer >> csv_transform
+    api_producer >> api_consumer >> api_transform
