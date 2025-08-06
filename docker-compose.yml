@@ -190,8 +190,9 @@ services:
     networks:
       - airflow_net
 
-  transform_csv:
-    container_name: transform_csv
+  csv_transform:
+    container_name: csv_transform
+    image: dataflow_csv_transform
     build:
       context: ./transformers/csv
       dockerfile: Dockerfile.transform_csv
@@ -205,12 +206,15 @@ services:
     volumes:
       - ./transformers/csv:/app
     restart: on-failure
+    networks:
+      - airflow_net
 
-  transform_database:
-    container_name: transform_database
+  database_transform:
+    container_name: database_transform
+    image: dataflow_database_transform
     build:
       context: ./transformers/database
-      dockerfile: Dockerfile.transform_database
+      dockerfile: Dockerfile.database_transform
     depends_on:
       db:
         condition: service_started
@@ -222,11 +226,12 @@ services:
       - ./transformers/database:/app
     restart: on-failure
 
-  transform_parquet:
-    container_name: transform_parquet
+  api_transform:
+    container_name: api_transform
+    image: dataflow_api_transform
     build:
-      context: ./transformers/parquet
-      dockerfile: Dockerfile.transform_parquet
+      context: ./transformers/api
+      dockerfile: Dockerfile.transform_api
     depends_on:
       db:
         condition: service_started
@@ -237,6 +242,8 @@ services:
     volumes:
       - ./transformers/parquet:/app
     restart: on-failure
+    networks:
+      - airflow_net
 
 networks:
   airflow_net:

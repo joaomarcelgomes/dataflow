@@ -5,6 +5,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY transform_csv.py .
+COPY csv_transform.py .
 
-CMD ["python", "transform_csv.py"]
+CMD ["python", "csv_transform.py"]

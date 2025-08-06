@@ -5,6 +5,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY transform_bd.py .
+COPY database_transform.py .
 
-CMD ["python", "transform_bd.py"]
+CMD ["python", "database_transform.py"]
