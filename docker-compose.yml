@@ -245,6 +245,19 @@ services:
     networks:
       - airflow_net
 
+  dashboard:
+    container_name: dashboard
+    image: dashboard
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile.dashboard
+    ports:
+      - "8050:8050"     
+    depends_on:
+      - db
+    networks:
+      - airflow_net
+
 networks:
   airflow_net:
 

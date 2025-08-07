@@ -1,0 +1,13 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app.py .
+
+ENV DB_URL=postgresql+psycopg2://postgres:postgres@db:5432/dataflow
+ENV TABLE=weather_forecast_raw
+
+CMD ["python", "app.py"]

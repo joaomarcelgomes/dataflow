@@ -28,7 +28,7 @@ def create_operator(task_id: str, image: str, command: str) -> DockerOperator:
 with DAG(
     dag_id='pipeline',
     default_args=default_args,
-    # schedule_interval='* * * * *',
+    #schedule_interval='* * * * *',
     schedule_interval=None,
     catchup=False
 ) as dag:

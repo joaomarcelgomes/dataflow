@@ -1,3 +1,4 @@
 requests
 confluent-kafka
 logging
+pandas
